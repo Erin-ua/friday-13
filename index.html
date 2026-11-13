@@ -13,6 +13,43 @@ function back(){if(index===0)screen('gender');else{index--;render()}}
 function next(){if(answers[index]===null){alert('Спочатку обери відповідь ✨');return}if(index<12){index++;render()}else finish()}
 function finish(){let pool=characters.filter(c=>gender==='mystery'||c.gender===gender||c.gender==='neutral');let scores=pool.map((c,i)=>{let score=0;answers.forEach((a,j)=>{let seed=(i*7+j*11+Math.floor(i/3)*3)%4;if(a===seed)score+=4;if(a===(seed+1)%4)score+=1});return score});let max=Math.max(...scores);let winners=pool.filter((_,i)=>scores[i]===max);current=winners[(answers.reduce((s,a,i)=>s+a*(i+1),0))%winners.length];$('name').textContent=current.name;$('portrait').src=current.img;$('portrait').alt='Ілюстрація: '+current.name;$('traits').innerHTML='';current.traits.split(' • ').forEach(t=>{let x=document.createElement('span');x.textContent=t;$('traits').appendChild(x)});$('desc').textContent=current.desc;$('pred').textContent='✦ Передбачення: '+current.pred;screen('result')}
 function reset(){screen('home')}
-async function share(){let text=`Я пройшов(ла) тест «Хто ти у п’ятницю 13-го?» і мій результат — ${current.name}! 🔮`;try{if(navigator.share)await navigator.share({title:'Хто ти у п’ятницю 13-го?',text,url:location.protocol.startsWith('http')?location.href:undefined});else if(navigator.clipboard){await navigator.clipboard.writeText(text);alert('Результат скопійовано!')}else prompt('Скопіюй результат:',text)}catch(e){if(e.name!=='AbortError')prompt('Скопіюй результат:',text)}}
+function share(){
+  const link='https://erin-ua.github.io/friday-13/';
+  const message=`🔮 Мій містичний персонаж на п’ятницю 13-го — ${current.name}!\n${current.desc}\n\nА хто ти? Пройди тест: ${link}`;
+  let modal=document.getElementById('share-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='share-modal';
+    modal.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(28,10,43,.78);display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';
+    modal.innerHTML=`<div role="dialog" aria-modal="true" aria-label="Поділитися результатом" style="width:min(100%,460px);background:#ffe1b8;color:#4b214c;border:5px solid #8e5484;border-radius:26px;padding:23px;box-sizing:border-box;box-shadow:0 18px 45px #190d29">
+      <h2 style="margin:0 0 12px;text-align:center;font-size:25px">✨ Поділися магією!</h2>
+      <p style="text-align:center;margin:0 0 12px">Надішли свій результат колегам:</p>
+      <textarea id="share-text" readonly style="width:100%;height:145px;box-sizing:border-box;border:2px solid #ae769a;border-radius:12px;padding:12px;font:inherit;color:#4b214c;background:#fff7ed;resize:none"></textarea>
+      <p id="share-status" role="status" style="min-height:24px;text-align:center;font-weight:bold;margin:9px 0"></p>
+      <button id="share-copy" type="button" style="width:100%;padding:14px;border:0;border-radius:24px;background:#a71964;color:white;font:inherit;font-weight:bold;cursor:pointer">📋 Скопіювати результат і посилання</button>
+      <button id="share-native" type="button" style="width:100%;padding:12px;margin-top:9px;border:0;border-radius:24px;background:#64285d;color:white;font:inherit;font-weight:bold;cursor:pointer">↗ Надіслати через застосунок</button>
+      <button id="share-close" type="button" style="width:100%;padding:10px;margin-top:9px;border:2px solid #865078;border-radius:24px;background:transparent;color:#4b214c;font:inherit;cursor:pointer">Закрити</button>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#share-close').onclick=()=>modal.style.display='none';
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.style.display='none'});
+    modal.querySelector('#share-copy').onclick=async()=>{
+      const value=modal.querySelector('#share-text').value;
+      let copied=false;
+      try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value);copied=true}}catch(e){}
+      if(!copied){const area=modal.querySelector('#share-text');area.focus();area.select();try{copied=document.execCommand('copy')}catch(e){}}
+      modal.querySelector('#share-status').textContent=copied?'✅ Скопійовано! Можна вставляти в чат.':'Виділи текст вище й скопіюй його вручну.';
+    };
+    modal.querySelector('#share-native').onclick=async()=>{
+      if(!navigator.share){modal.querySelector('#share-status').textContent='На цьому пристрої пряме поширення недоступне. Скористайся копіюванням.';return}
+      try{await navigator.share({title:'Хто ти у п’ятницю 13-го?',text:modal.querySelector('#share-text').value})}
+      catch(e){if(e.name!=='AbortError')modal.querySelector('#share-status').textContent='Не вдалося надіслати. Скористайся кнопкою копіювання.'}
+    };
+  }
+  modal.querySelector('#share-text').value=message;
+  modal.querySelector('#share-status').textContent='';
+  modal.style.display='flex';
+}
+
 $('cover').src=characters[0].img;
 </script></body></html>
